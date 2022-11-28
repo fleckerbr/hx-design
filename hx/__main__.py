@@ -1,3 +1,4 @@
+import math
 from typing import Union
 
 import toml
@@ -117,7 +118,7 @@ def lmtd_analysis(
     channel_area = plate_width * plate_spacing
     plate_surface_area = plate_width * plate_height
     plate_volume = plate_surface_area * plate_thickness
-    plate_characteristic_length = plate_volume / plate_surface_area
+    hydraulic_diameter = 4 * channel_area / (2 * plate_width + 2 * plate_spacing)
 
     pintutil.mprint(
         f"{colors.fg.blue}Channel Area {colors.fg.darkgrey}::{colors.reset} ",
@@ -135,8 +136,8 @@ def lmtd_analysis(
         ".4P~",
     )
     pintutil.mprint(
-        f"{colors.fg.blue}Plate Characteristic Length {colors.fg.darkgrey}::{colors.reset} ",
-        plate_characteristic_length,
+        f"{colors.fg.blue}Hydraulic Diameter {colors.fg.darkgrey}::{colors.reset} ",
+        hydraulic_diameter,
         ".6fP~",
     )
 
@@ -166,15 +167,19 @@ def lmtd_analysis(
     # Determine plate count based on defined parameters
     energy = M_(*pintutil.mtargs(heat_exchanger["energy"])).to_root_units()
     for plates in range(1, heat_exchanger["plate_max_count"]):
-        split_hot_fluid_velocity = hot_fluid_velocity / plates
-        split_cold_fluid_velocity = cold_fluid_velocity / plates
+        hot_mass_flow_rate = (
+            M_(*pintutil.mtargs(heat_exchanger["hot_mass_flow_rate"])) / plates
+        )
+        cold_mass_flow_rate = (
+            M_(*pintutil.mtargs(heat_exchanger["cold_mass_flow_rate"])) / plates
+        )
 
         hot_convective_heat_transfer_coefficient = M_(
             *pintutil.mtargs(
                 hot_coolant.convective_coefficient(
                     (0.037, 4 / 5, 1 / 3),
-                    f"{split_hot_fluid_velocity:C}",
-                    f"{plate_characteristic_length:C}",
+                    f"{hot_mass_flow_rate:C}",
+                    f"{hydraulic_diameter:C}",
                 )
             )
         )
@@ -182,8 +187,8 @@ def lmtd_analysis(
             *pintutil.mtargs(
                 cold_coolant.convective_coefficient(
                     (0.037, 4 / 5, 1 / 3),
-                    f"{split_cold_fluid_velocity:C}",
-                    f"{plate_characteristic_length:C}",
+                    f"{cold_mass_flow_rate:C}",
+                    f"{hydraulic_diameter:C}",
                 )
             )
         )
@@ -197,16 +202,14 @@ def lmtd_analysis(
         plates_required = round((surface_area / plate_surface_area).value.magnitude)
 
         if plates == plates_required:
-            rho = M_(*pintutil.mtargs(hot_coolant.density)).to_root_units()
             mu = M_(*pintutil.mtargs(hot_coolant.dynamic_viscosity)).to_root_units()
             hot_reynolds_number = (
-                rho * hot_fluid_velocity * plate_characteristic_length / mu
+                4 * hot_mass_flow_rate / (math.pi * mu * hydraulic_diameter)
             )
 
-            rho = M_(*pintutil.mtargs(cold_coolant.density)).to_root_units()
             mu = M_(*pintutil.mtargs(cold_coolant.dynamic_viscosity)).to_root_units()
             cold_reynolds_number = (
-                rho * cold_fluid_velocity * plate_characteristic_length / mu
+                4 * cold_mass_flow_rate / (math.pi * mu * hydraulic_diameter)
             )
 
             pintutil.mprint(
