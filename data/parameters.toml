@@ -1,6 +1,5 @@
 [hot-coolant]
 fluid = "Mineral Oil"
-density = "870 kg/m**3"
 dynamic_viscosity = "7.65e-4 kg/(m*s)"
 prandtl_number = 14
 specific_heat = "1040 J/(kg*°C)"
@@ -8,7 +7,6 @@ thermal_conductivity = "0.058 W/(m*°C)"
 
 [cold-coolant]
 fluid = "Water"
-density = "1000 kg/m**3"
 dynamic_viscosity = "1.793e-3 kg/(m*s)"
 prandtl_number = 9.45
 specific_heat = "4200 J/(kg*°C)"

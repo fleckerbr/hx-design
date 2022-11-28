@@ -8,7 +8,6 @@ from hx import pintutil
 
 @dataclass
 class Coolant:
-    density: str
     dynamic_viscosity: str
     prandtl_number: float
     specific_heat: str

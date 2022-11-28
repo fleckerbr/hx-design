@@ -141,29 +141,6 @@ def lmtd_analysis(
         ".6fP~",
     )
 
-    # Calculate fluid velocity
-    hot_fluid_velocity = (
-        M_(*pintutil.mtargs(heat_exchanger["hot_mass_flow_rate"])).to_root_units()
-        / M_(*pintutil.mtargs(hot_coolant.density)).to_root_units()
-        / channel_area
-    )
-    cold_fluid_velocity = (
-        M_(*pintutil.mtargs(heat_exchanger["cold_mass_flow_rate"])).to_root_units()
-        / M_(*pintutil.mtargs(cold_coolant.density)).to_root_units()
-        / channel_area
-    )
-
-    pintutil.mprint(
-        f"{colors.fg.blue}Hot Fluid Velocity {colors.fg.darkgrey}::{colors.reset} ",
-        hot_fluid_velocity,
-        ".6fP~",
-    )
-    pintutil.mprint(
-        f"{colors.fg.blue}Cold Fluid Velocity {colors.fg.darkgrey}::{colors.reset} ",
-        cold_fluid_velocity,
-        ".6fP~",
-    )
-
     # Determine plate count based on defined parameters
     energy = M_(*pintutil.mtargs(heat_exchanger["energy"])).to_root_units()
     for plates in range(1, heat_exchanger["plate_max_count"]):
@@ -241,7 +218,6 @@ if __name__ == "__main__":
     # Load heat exchanger parameters
     parameters = toml.load("data/parameters.toml")
     coolant_params = (
-        "density",
         "dynamic_viscosity",
         "prandtl_number",
         "specific_heat",
