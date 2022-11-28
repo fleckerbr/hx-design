@@ -1,0 +1,11 @@
+{
+    "configurations": [
+        {
+            "name": "Python: hx",
+            "type": "python",
+            "request": "launch",
+            "module": "hx",
+            "justMyCode": true
+        }
+    ]
+}
