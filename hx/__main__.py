@@ -1,3 +1,4 @@
+import csv
 import math
 from typing import Union
 
@@ -118,7 +119,7 @@ def lmtd_analysis(
     channel_area = plate_width * plate_spacing
     plate_surface_area = plate_width * plate_height
     plate_volume = plate_surface_area * plate_thickness
-    hydraulic_diameter = 4 * channel_area / (2 * plate_width + 2 * plate_spacing)
+    plate_characteristic_length = plate_volume / plate_surface_area
 
     pintutil.mprint(
         f"{colors.fg.blue}Channel Area {colors.fg.darkgrey}::{colors.reset} ",
@@ -136,59 +137,97 @@ def lmtd_analysis(
         ".4P~",
     )
     pintutil.mprint(
-        f"{colors.fg.blue}Hydraulic Diameter {colors.fg.darkgrey}::{colors.reset} ",
-        hydraulic_diameter,
+        f"{colors.fg.blue}Plate Characteristic Length {colors.fg.darkgrey}::{colors.reset} ",
+        plate_characteristic_length,
+        ".4P~",
+    )
+
+    # Calculate fluid velocity
+    hot_fluid_velocity = (
+        M_(*pintutil.mtargs(heat_exchanger["hot_mass_flow_rate"])).to_root_units()
+        / M_(*pintutil.mtargs(hot_coolant.density)).to_root_units()
+        / channel_area
+    )
+    cold_fluid_velocity = (
+        M_(*pintutil.mtargs(heat_exchanger["cold_mass_flow_rate"])).to_root_units()
+        / M_(*pintutil.mtargs(cold_coolant.density)).to_root_units()
+        / channel_area
+    )
+
+    pintutil.mprint(
+        f"{colors.fg.blue}Hot Fluid Velocity {colors.fg.darkgrey}::{colors.reset} ",
+        hot_fluid_velocity,
         ".6fP~",
     )
+    pintutil.mprint(
+        f"{colors.fg.blue}Cold Fluid Velocity {colors.fg.darkgrey}::{colors.reset} ",
+        cold_fluid_velocity,
+        ".6fP~",
+    )
+
+    # Create csv file for data logging
+    with open("data/results.csv", "w") as csvfile:
+        csvfile.write("P_used, P_req, V_h, V_c, Re_h, Re_c, U [W/(m*degC)]\n")
 
     # Determine plate count based on defined parameters
     energy = M_(*pintutil.mtargs(heat_exchanger["energy"])).to_root_units()
     for plates in range(1, heat_exchanger["plate_max_count"]):
-        hot_mass_flow_rate = (
-            M_(*pintutil.mtargs(heat_exchanger["hot_mass_flow_rate"])) / plates
-        )
-        cold_mass_flow_rate = (
-            M_(*pintutil.mtargs(heat_exchanger["cold_mass_flow_rate"])) / plates
-        )
+        split_hot_fluid_velocity = hot_fluid_velocity / plates
+        split_cold_fluid_velocity = cold_fluid_velocity / plates
 
         hot_convective_heat_transfer_coefficient = M_(
             *pintutil.mtargs(
                 hot_coolant.convective_coefficient(
-                    (0.037, 4 / 5, 1 / 3),
-                    f"{hot_mass_flow_rate:C}",
-                    f"{hydraulic_diameter:C}",
+                    (0.1381, 0.75, 0.333),
+                    f"{split_hot_fluid_velocity:C}",
+                    f"{plate_characteristic_length:C}",
                 )
             )
         )
         cold_convective_heat_transfer_coefficient = M_(
             *pintutil.mtargs(
                 cold_coolant.convective_coefficient(
-                    (0.037, 4 / 5, 1 / 3),
-                    f"{cold_mass_flow_rate:C}",
-                    f"{hydraulic_diameter:C}",
+                    (0.1381, 0.75, 0.333),
+                    f"{split_cold_fluid_velocity:C}",
+                    f"{plate_characteristic_length:C}",
                 )
             )
         )
+
+        rho = M_(*pintutil.mtargs(hot_coolant.density)).to_root_units()
+        mu = M_(*pintutil.mtargs(hot_coolant.dynamic_viscosity)).to_root_units()
+        hot_reynolds_number = (
+            rho * hot_fluid_velocity * plate_characteristic_length / mu
+        ).to_root_units()
+
+        rho = M_(*pintutil.mtargs(cold_coolant.density)).to_root_units()
+        mu = M_(*pintutil.mtargs(cold_coolant.dynamic_viscosity)).to_root_units()
+        cold_reynolds_number = (
+            rho * cold_fluid_velocity * plate_characteristic_length / mu
+        ).to_root_units()
 
         ufactor = (
             1 / hot_convective_heat_transfer_coefficient
             + 1 / cold_convective_heat_transfer_coefficient
         ).to("m**2*degC/W")
         ufactor = 1 / ufactor
-        surface_area = energy / (ufactor * lmtd_cf)
+        surface_area = (energy / plates) / (ufactor * lmtd_cf)
         plates_required = round((surface_area / plate_surface_area).value.magnitude)
 
-        if plates == plates_required:
-            mu = M_(*pintutil.mtargs(hot_coolant.dynamic_viscosity)).to_root_units()
-            hot_reynolds_number = (
-                4 * hot_mass_flow_rate / (math.pi * mu * hydraulic_diameter)
+        with open("data/results.csv", "a", newline="\n") as csvfile:
+            csvfile.write(
+                "{p_used}, {p_req}, {v_hot}, {v_cold}, {re_hot:.0f}, {re_cold:.0f}, {u}\n".format(
+                    p_used=plates,
+                    p_req=plates_required,
+                    v_hot=split_hot_fluid_velocity.value.magnitude,
+                    v_cold=split_cold_fluid_velocity.value.magnitude,
+                    re_hot=hot_reynolds_number.value.magnitude,
+                    re_cold=cold_reynolds_number.value.magnitude,
+                    u=ufactor.value.magnitude,
+                )
             )
 
-            mu = M_(*pintutil.mtargs(cold_coolant.dynamic_viscosity)).to_root_units()
-            cold_reynolds_number = (
-                4 * cold_mass_flow_rate / (math.pi * mu * hydraulic_diameter)
-            )
-
+        if plates >= plates_required:
             pintutil.mprint(
                 f"{colors.fg.blue}Overall Heat Transfer Coefficient {colors.fg.darkgrey}::{colors.reset} ",
                 ufactor,
@@ -218,6 +257,7 @@ if __name__ == "__main__":
     # Load heat exchanger parameters
     parameters = toml.load("data/parameters.toml")
     coolant_params = (
+        "density",
         "dynamic_viscosity",
         "prandtl_number",
         "specific_heat",
