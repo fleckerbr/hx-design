@@ -163,15 +163,18 @@ def lmtd_analysis(
             )
         )
 
-        u_value = (
-            1 / hot_convective_heat_transfer_coefficient
-            + 1 / cold_convective_heat_transfer_coefficient
-        ).to("m**2*degC/W")
+        try:
+            u_value = (
+                1 / hot_convective_heat_transfer_coefficient
+                + 1 / cold_convective_heat_transfer_coefficient
+            ).to("m**2*degC/W")
+        except ZeroDivisionError:
+            break
         u_value = 1 / u_value
         required_surface_area = (energy / plates_used) / (
             u_value.to_root_units() * lmtd_cf.to_root_units()
         )
-        plates_required = required_surface_area / plate_surface_area
+        plates_required = required_surface_area / (2 * plate_surface_area)
         max_plates_required = math.ceil(
             plates_required.value.magnitude + plates_required.error.magnitude
         )
@@ -285,6 +288,11 @@ def lmtd_analysis(
                 f"\n{colors.underline}Heat Exchanger :: {heat_exchanger.get('name')}{colors.reset}",
             )
             pintil.mprint(
+                f"{colors.fg.blue}Energy Transfer {colors.fg.lightgreen}[Q] {colors.fg.darkgrey}::{colors.reset} ",
+                energy,
+                ".3fP~",
+            )
+            pintil.mprint(
                 f"{colors.fg.blue}LMTD {colors.fg.darkgrey}::{colors.reset} ",
                 lmtd_cf,
                 ".3fP~",
@@ -383,6 +391,11 @@ def lmtd_analysis(
         )
         print(
             f"\n{colors.underline}Heat Exchanger :: {heat_exchanger.get('name')}{colors.reset}",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Energy Transfer {colors.fg.lightgreen}[Q] {colors.fg.darkgrey}::{colors.reset} ",
+            energy,
+            ".3fP~",
         )
         pintil.mprint(
             f"{colors.fg.blue}LMTD {colors.fg.darkgrey}::{colors.reset} ",

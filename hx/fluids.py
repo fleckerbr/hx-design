@@ -52,11 +52,16 @@ class Coolant:
     ) -> str:
         M_ = Measurement
 
-        c, m, n = (nusselt_coefficient, reynolds_exponent, prandtl_exponent)
+        # c, m, n = (nusselt_coefficient, reynolds_exponent, prandtl_exponent)
         re = M_(*pintil.mtargs(reynolds_number)).to_root_units()
         pr = M_(*pintil.mtargs(self.prandtl_number)).to_root_units()
 
-        nu = c * re**m * pr**n
+        angle = 45
+        f = (angle / 30) ** 0.83 * ((30.2 / re) ** 5 + (6.28 / re**0.5) ** 5) ** 0.2
+
+        nu = ((f / 8) * (re - 1000) * pr) / (
+            1 + 12.7 * (f / 8) ** 0.5 * (pr ** (2 / 3) - 1)
+        )
 
         return f"{nu:C}"
 
