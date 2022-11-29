@@ -214,12 +214,12 @@ def lmtd_analysis(
                 ".3fP~",
             )
             pintil.mprint(
-                f"{colors.fg.blue}Max Velocity {colors.fg.lightgreen}[u_max] {colors.fg.darkgrey}::{colors.reset} ",
+                f"{colors.fg.blue}Max Velocity {colors.fg.lightgreen}[Vmax] {colors.fg.darkgrey}::{colors.reset} ",
                 max_hot_fluid_velocity,
                 ".3fP~",
             )
             pintil.mprint(
-                f"{colors.fg.blue}Channel Velocity {colors.fg.lightgreen}[u] {colors.fg.darkgrey}::{colors.reset} ",
+                f"{colors.fg.blue}Channel Velocity {colors.fg.lightgreen}[V] {colors.fg.darkgrey}::{colors.reset} ",
                 hot_fluid_velocity,
                 ".3fP~",
             )
@@ -257,12 +257,12 @@ def lmtd_analysis(
                 ".3fP~",
             )
             pintil.mprint(
-                f"{colors.fg.blue}Max Velocity {colors.fg.lightgreen}[u_max] {colors.fg.darkgrey}::{colors.reset} ",
+                f"{colors.fg.blue}Max Velocity {colors.fg.lightgreen}[Vmax] {colors.fg.darkgrey}::{colors.reset} ",
                 max_cold_fluid_velocity,
                 ".3fP~",
             )
             pintil.mprint(
-                f"{colors.fg.blue}Channel Velocity {colors.fg.lightgreen}[u] {colors.fg.darkgrey}::{colors.reset} ",
+                f"{colors.fg.blue}Channel Velocity {colors.fg.lightgreen}[V] {colors.fg.darkgrey}::{colors.reset} ",
                 cold_fluid_velocity,
                 ".3fP~",
             )
@@ -290,12 +290,12 @@ def lmtd_analysis(
                 ".3fP~",
             )
             pintil.mprint(
-                f"{colors.fg.blue}Channel Width {colors.fg.lightgreen}[V] {colors.fg.darkgrey}::{colors.reset} ",
+                f"{colors.fg.blue}Channel Width {colors.fg.lightgreen}[Wc] {colors.fg.darkgrey}::{colors.reset} ",
                 channel_width,
                 ".6fP~",
             )
             pintil.mprint(
-                f"{colors.fg.blue}Channel Volume {colors.fg.lightgreen}[V] {colors.fg.darkgrey}::{colors.reset} ",
+                f"{colors.fg.blue}Channel Volume {colors.fg.lightgreen}[Vc] {colors.fg.darkgrey}::{colors.reset} ",
                 channel_volume,
                 ".6fP~",
             )
@@ -312,6 +312,11 @@ def lmtd_analysis(
             pintil.mprint(
                 f"{colors.fg.blue}U-value {colors.fg.lightgreen}[U] {colors.fg.darkgrey}::{colors.reset} ",
                 u_value,
+                ".3fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Plate Surface Area {colors.fg.lightgreen}[As] {colors.fg.darkgrey}::{colors.reset}",
+                plate_surface_area,
                 ".3fP~",
             )
             pintil.mprint(
@@ -349,7 +354,7 @@ def lmtd_analysis(
             ".3fP~",
         )
         pintil.mprint(
-            f"{colors.fg.blue}Max Velocity {colors.fg.lightgreen}[u_max] {colors.fg.darkgrey}::{colors.reset} ",
+            f"{colors.fg.blue}Max Velocity {colors.fg.lightgreen}[Vmax] {colors.fg.darkgrey}::{colors.reset} ",
             max_hot_fluid_velocity,
             ".3fP~",
         )
@@ -372,12 +377,12 @@ def lmtd_analysis(
             ".3fP~",
         )
         pintil.mprint(
-            f"{colors.fg.blue}Max Velocity {colors.fg.lightgreen}[u_max] {colors.fg.darkgrey}::{colors.reset} ",
+            f"{colors.fg.blue}Max Velocity {colors.fg.lightgreen}[Vmax] {colors.fg.darkgrey}::{colors.reset} ",
             max_cold_fluid_velocity,
             ".3fP~",
         )
         print(
-            f"{colors.underline}Heat Exchanger :: {heat_exchanger.get('name')}{colors.reset}",
+            f"\n{colors.underline}Heat Exchanger :: {heat_exchanger.get('name')}{colors.reset}",
         )
         pintil.mprint(
             f"{colors.fg.blue}LMTD {colors.fg.darkgrey}::{colors.reset} ",
@@ -385,12 +390,12 @@ def lmtd_analysis(
             ".3fP~",
         )
         pintil.mprint(
-            f"{colors.fg.blue}Channel Width {colors.fg.lightgreen}[V] {colors.fg.darkgrey}::{colors.reset} ",
+            f"{colors.fg.blue}Channel Width {colors.fg.lightgreen}[Wc] {colors.fg.darkgrey}::{colors.reset} ",
             channel_width,
             ".6fP~",
         )
         pintil.mprint(
-            f"{colors.fg.blue}Channel Volume {colors.fg.lightgreen}[V] {colors.fg.darkgrey}::{colors.reset} ",
+            f"{colors.fg.blue}Channel Volume {colors.fg.lightgreen}[Vc] {colors.fg.darkgrey}::{colors.reset} ",
             channel_volume,
             ".6fP~",
         )
@@ -400,9 +405,14 @@ def lmtd_analysis(
             ".6fP~",
         )
         pintil.mprint(
-            f"{colors.fg.blue}Channel Hydraulic Diameter {colors.fg.lightgreen}[Dh] {colors.fg.darkgrey}::{colors.reset} ",
+            f"{colors.fg.blue}Hydraulic Diameter {colors.fg.lightgreen}[Dh] {colors.fg.darkgrey}::{colors.reset} ",
             hydraulic_diameter,
-            ".4P~",
+            ".6fP~",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Plate Surface Area {colors.fg.lightgreen}[As] {colors.fg.darkgrey}::{colors.reset}",
+            plate_surface_area,
+            ".3fP~",
         )
         print(
             f"{colors.fg.blue}Plates Required {colors.fg.darkgrey}::{colors.reset}",
