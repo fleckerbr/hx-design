@@ -119,7 +119,7 @@ def lmtd_analysis(
     channel_area = plate_width * plate_spacing
     plate_surface_area = plate_width * plate_height
     plate_volume = plate_surface_area * plate_thickness
-    plate_characteristic_length = plate_volume / plate_surface_area
+    hydraulic_diameter = 4 * channel_area / (2 * plate_width + 2 * plate_spacing)
 
     pintutil.mprint(
         f"{colors.fg.blue}Channel Area {colors.fg.darkgrey}::{colors.reset} ",
@@ -138,7 +138,7 @@ def lmtd_analysis(
     )
     pintutil.mprint(
         f"{colors.fg.blue}Plate Characteristic Length {colors.fg.darkgrey}::{colors.reset} ",
-        plate_characteristic_length,
+        hydraulic_diameter,
         ".4P~",
     )
 
@@ -180,7 +180,7 @@ def lmtd_analysis(
                 hot_coolant.convective_coefficient(
                     (0.1381, 0.75, 0.333),
                     f"{split_hot_fluid_velocity:C}",
-                    f"{plate_characteristic_length:C}",
+                    f"{hydraulic_diameter:C}",
                 )
             )
         )
@@ -189,7 +189,7 @@ def lmtd_analysis(
                 cold_coolant.convective_coefficient(
                     (0.1381, 0.75, 0.333),
                     f"{split_cold_fluid_velocity:C}",
-                    f"{plate_characteristic_length:C}",
+                    f"{hydraulic_diameter:C}",
                 )
             )
         )
@@ -197,13 +197,14 @@ def lmtd_analysis(
         rho = M_(*pintutil.mtargs(hot_coolant.density)).to_root_units()
         mu = M_(*pintutil.mtargs(hot_coolant.dynamic_viscosity)).to_root_units()
         hot_reynolds_number = (
-            rho * hot_fluid_velocity * plate_characteristic_length / mu
+            rho * split_hot_fluid_velocity * hydraulic_diameter / mu
         ).to_root_units()
+        # hot = nusselt_number = c * reynolds_number**m * self.prandtl_number**n
 
         rho = M_(*pintutil.mtargs(cold_coolant.density)).to_root_units()
         mu = M_(*pintutil.mtargs(cold_coolant.dynamic_viscosity)).to_root_units()
         cold_reynolds_number = (
-            rho * cold_fluid_velocity * plate_characteristic_length / mu
+            rho * split_cold_fluid_velocity * hydraulic_diameter / mu
         ).to_root_units()
 
         ufactor = (
