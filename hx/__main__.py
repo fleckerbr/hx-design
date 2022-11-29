@@ -1,3 +1,4 @@
+import math
 from typing import Union
 
 import toml
@@ -103,9 +104,9 @@ def lmtd_analysis(
 
     # Determine plate count based on defined parameters
     solution_identified = False
-    for plates in range(1, heat_exchanger["plate_max_count"]):
-        hot_fluid_velocity = max_hot_fluid_velocity / plates
-        cold_fluid_velocity = max_cold_fluid_velocity / plates
+    for plates_used in range(1, heat_exchanger["plate_max_count"]):
+        hot_fluid_velocity = max_hot_fluid_velocity / plates_used
+        cold_fluid_velocity = max_cold_fluid_velocity / plates_used
 
         hot_reynolds_number = M_(
             *pintil.mtargs(
@@ -167,14 +168,19 @@ def lmtd_analysis(
             + 1 / cold_convective_heat_transfer_coefficient
         ).to("m**2*degC/W")
         u_value = 1 / u_value
-        surface_area = (energy / plates) / (u_value * lmtd_cf)
-        plates_required = round((surface_area / plate_surface_area).value.magnitude)
+        required_surface_area = (energy / plates_used) / (
+            u_value.to_root_units() * lmtd_cf.to_root_units()
+        )
+        plates_required = required_surface_area / plate_surface_area
+        max_plates_required = math.ceil(
+            plates_required.value.magnitude + plates_required.error.magnitude
+        )
 
         with open("data/results.csv", "a", newline="\n") as csvfile:
             csvfile.write(
                 "{p_used}, {p_req}, {v_hot}, {v_cold}, {re_hot:.0f}, {re_cold:.0f}, {nu_hot:.0f}, {nu_cold:.0f}, {h_hot:.0f}, {h_cold:.0f}, {u}\n".format(
-                    p_used=plates,
-                    p_req=plates_required,
+                    p_used=plates_used,
+                    p_req=plates_required.magnitude,
                     v_hot=hot_fluid_velocity.magnitude,
                     v_cold=cold_fluid_velocity.magnitude,
                     re_hot=hot_reynolds_number.magnitude,
@@ -187,7 +193,7 @@ def lmtd_analysis(
                 )
             )
 
-        if plates >= plates_required and not solution_identified:
+        if plates_used >= max_plates_required and not solution_identified:
             solution_identified = True
             print(
                 f"\n{colors.underline}Hot Coolant :: {hot_coolant.name}{colors.reset}",
@@ -230,7 +236,7 @@ def lmtd_analysis(
             pintil.mprint(
                 f"{colors.fg.blue}Convective Coefficient {colors.fg.lightgreen}[h] {colors.fg.darkgrey}::{colors.reset} ",
                 hot_convective_heat_transfer_coefficient,
-                ".1fP~",
+                ".0fP~",
             )
             print(
                 f"\n{colors.underline}Cold Coolant :: {cold_coolant.name}{colors.reset}",
@@ -273,7 +279,7 @@ def lmtd_analysis(
             pintil.mprint(
                 f"{colors.fg.blue}Convective Coefficient {colors.fg.lightgreen}[h] {colors.fg.darkgrey}::{colors.reset} ",
                 cold_convective_heat_transfer_coefficient,
-                ".1fP~",
+                ".0fP~",
             )
             print(
                 f"\n{colors.underline}Heat Exchanger :: {heat_exchanger.get('name')}{colors.reset}",
@@ -308,9 +314,19 @@ def lmtd_analysis(
                 u_value,
                 ".3fP~",
             )
-            print(
+            pintil.mprint(
+                f"{colors.fg.blue}Required Surface Area {colors.fg.lightgreen}[A] {colors.fg.darkgrey}::{colors.reset}",
+                required_surface_area,
+                ".3fP~",
+            )
+            pintil.mprint(
                 f"{colors.fg.blue}Plates Required {colors.fg.darkgrey}::{colors.reset}",
                 plates_required,
+                ".3fP~",
+            )
+            print(
+                f"{colors.fg.blue}Plates Used {colors.fg.darkgrey}::{colors.reset}",
+                plates_used,
             )
 
     if not solution_identified:
