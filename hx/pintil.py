@@ -43,6 +43,11 @@ def mprint(text: str, measurement: Measurement, fmt: str = "P~") -> None:
         fmt: Quantity formatting code. Defaults to "P~".
     """
 
-    _, units = f"{measurement.value:{fmt}}".rsplit(" ", 1)
+    try:
+        _, units = f"{measurement.value:{fmt}}".rsplit(" ", 1)
+        units = f" {units}"
+    except ValueError:
+        # ValueError indicates that units are missing
+        units = ""
     value, _ = f"{measurement:{fmt.replace('~','')}}".rsplit(" ", 1)
-    print(f"{text}{value} {units}")
+    print(f"{text}{value}{units}")

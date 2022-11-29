@@ -1,17 +1,15 @@
-import csv
-import math
 from typing import Union
 
 import toml
 from pint import UnitRegistry
 from uncertainties import ufloat, umath
 
-from hx import colors, pintutil
+from hx import colors, pintil
 from hx.fluids import Coolant
 
 
 def lmtd_analysis(
-    heat_exchanger: dict[str, Union[str, int]],
+    heat_exchanger: dict[str, Union[str, int, float]],
     hot_coolant: Coolant,
     cold_coolant: Coolant,
 ) -> None:
@@ -23,7 +21,7 @@ def lmtd_analysis(
 
     # Calculate hot coolant temperatures
     hot_coolant_delta_temperature = M_(
-        *pintutil.mtargs(
+        *pintil.mtargs(
             hot_coolant.temperature_change(
                 "-" + heat_exchanger["energy"],
                 heat_exchanger["hot_mass_flow_rate"],
@@ -31,32 +29,16 @@ def lmtd_analysis(
         )
     )
     hot_coolant_inlet_temperature = M_(
-        *pintutil.mtargs(heat_exchanger["hot_inlet_temperature"])
+        *pintil.mtargs(heat_exchanger["hot_inlet_temperature"])
     )
     hot_coolant_outlet_temperature = (
         hot_coolant_inlet_temperature.to("kelvin") + hot_coolant_delta_temperature
     ).to("degC")
     hot_coolant_delta_temperature = hot_coolant_delta_temperature.to("delta_degC")
 
-    pintutil.mprint(
-        f"{colors.fg.blue}Hot Coolant Ti {colors.fg.darkgrey}::{colors.reset} ",
-        hot_coolant_inlet_temperature,
-        ".3fP~",
-    )
-    pintutil.mprint(
-        f"{colors.fg.blue}Hot Coolant To {colors.fg.darkgrey}::{colors.reset} ",
-        hot_coolant_outlet_temperature,
-        ".3fP~",
-    )
-    pintutil.mprint(
-        f"{colors.fg.blue}Hot Coolant ΔT {colors.fg.darkgrey}::{colors.reset} ",
-        hot_coolant_delta_temperature,
-        ".3fP~",
-    )
-
     # Calculate cold coolant temperatures
     cold_coolant_delta_temperature = M_(
-        *pintutil.mtargs(
+        *pintil.mtargs(
             cold_coolant.temperature_change(
                 heat_exchanger["energy"],
                 heat_exchanger["cold_mass_flow_rate"],
@@ -64,28 +46,12 @@ def lmtd_analysis(
         )
     )
     cold_coolant_inlet_temperature = M_(
-        *pintutil.mtargs(heat_exchanger["cold_inlet_temperature"])
+        *pintil.mtargs(heat_exchanger["cold_inlet_temperature"])
     )
     cold_coolant_outlet_temperature = (
         cold_coolant_inlet_temperature.to("kelvin") + cold_coolant_delta_temperature
     ).to("degC")
     cold_coolant_delta_temperature = cold_coolant_delta_temperature.to("delta_degC")
-
-    pintutil.mprint(
-        f"{colors.fg.blue}Cold Coolant Ti {colors.fg.darkgrey}::{colors.reset} ",
-        cold_coolant_inlet_temperature,
-        ".3fP~",
-    )
-    pintutil.mprint(
-        f"{colors.fg.blue}Cold Coolant To {colors.fg.darkgrey}::{colors.reset} ",
-        cold_coolant_outlet_temperature,
-        ".3fP~",
-    )
-    pintutil.mprint(
-        f"{colors.fg.blue}Cold Coolant ΔT {colors.fg.darkgrey}::{colors.reset} ",
-        cold_coolant_delta_temperature,
-        ".3fP~",
-    )
 
     # Calculate log mean temperature difference
     delta_t1 = hot_coolant_inlet_temperature - cold_coolant_inlet_temperature
@@ -97,157 +63,331 @@ def lmtd_analysis(
         )
     )
 
-    pintutil.mprint(
-        f"{colors.fg.blue}LMTD {colors.fg.darkgrey}::{colors.reset} ",
-        lmtd_cf,
-        ".3fP~",
-    )
-
     # Calculate heat exchanger dimensions
     channel_volume = M_(
-        *pintutil.mtargs(heat_exchanger["channel_volume"])
+        *pintil.mtargs(heat_exchanger["channel_volume"])
     ).to_root_units()
-    plate_width = M_(*pintutil.mtargs(heat_exchanger["plate_width"])).to_root_units()
-    plate_height = M_(*pintutil.mtargs(heat_exchanger["plate_height"])).to_root_units()
-    plate_spacing = M_(
-        *pintutil.mtargs(heat_exchanger["plate_spacing"])
-    ).to_root_units()
-    plate_thickness = M_(
-        *pintutil.mtargs(heat_exchanger["plate_thickness"])
-    ).to_root_units()
+    plate_width = M_(*pintil.mtargs(heat_exchanger["plate_width"])).to_root_units()
+    plate_height = M_(*pintil.mtargs(heat_exchanger["plate_height"])).to_root_units()
 
-    channel_area = plate_width * plate_spacing
     plate_surface_area = plate_width * plate_height
-    plate_volume = plate_surface_area * plate_thickness
-    hydraulic_diameter = 4 * channel_area / (2 * plate_width + 2 * plate_spacing)
-
-    pintutil.mprint(
-        f"{colors.fg.blue}Channel Area {colors.fg.darkgrey}::{colors.reset} ",
-        channel_area,
-        ".6fP~",
-    )
-    pintutil.mprint(
-        f"{colors.fg.blue}Channel Volume {colors.fg.darkgrey}::{colors.reset} ",
-        channel_volume,
-        ".6fP~",
-    )
-    pintutil.mprint(
-        f"{colors.fg.blue}Plate Volume {colors.fg.darkgrey}::{colors.reset} ",
-        plate_volume,
-        ".4P~",
-    )
-    pintutil.mprint(
-        f"{colors.fg.blue}Plate Characteristic Length {colors.fg.darkgrey}::{colors.reset} ",
-        hydraulic_diameter,
-        ".4P~",
-    )
+    channel_width = channel_volume / plate_surface_area
+    channel_area = plate_width * channel_width
+    hydraulic_diameter = 4 * channel_area / (2 * plate_width + 2 * channel_width)
 
     # Calculate fluid velocity
-    hot_fluid_velocity = (
-        M_(*pintutil.mtargs(heat_exchanger["hot_mass_flow_rate"])).to_root_units()
-        / M_(*pintutil.mtargs(hot_coolant.density)).to_root_units()
+    max_hot_fluid_velocity = (
+        M_(*pintil.mtargs(heat_exchanger["hot_mass_flow_rate"])).to_root_units()
+        / M_(*pintil.mtargs(hot_coolant.density)).to_root_units()
         / channel_area
     )
-    cold_fluid_velocity = (
-        M_(*pintutil.mtargs(heat_exchanger["cold_mass_flow_rate"])).to_root_units()
-        / M_(*pintutil.mtargs(cold_coolant.density)).to_root_units()
+    max_cold_fluid_velocity = (
+        M_(*pintil.mtargs(heat_exchanger["cold_mass_flow_rate"])).to_root_units()
+        / M_(*pintil.mtargs(cold_coolant.density)).to_root_units()
         / channel_area
-    )
-
-    pintutil.mprint(
-        f"{colors.fg.blue}Hot Fluid Velocity {colors.fg.darkgrey}::{colors.reset} ",
-        hot_fluid_velocity,
-        ".6fP~",
-    )
-    pintutil.mprint(
-        f"{colors.fg.blue}Cold Fluid Velocity {colors.fg.darkgrey}::{colors.reset} ",
-        cold_fluid_velocity,
-        ".6fP~",
     )
 
     # Create csv file for data logging
     with open("data/results.csv", "w") as csvfile:
-        csvfile.write("P_used, P_req, V_h, V_c, Re_h, Re_c, U [W/(m*degC)]\n")
+        csvfile.write(
+            "P_used, P_req, V_hot, V_cold, Re_hot, Re_cold, Nu_hot, Nu_cold, h_hot [W/(m*°C)], h_cold [W/(m*°C)], U [W/(m*°C)]\n",
+        )
+
+    # Preload data from parameters file
+    nusselt_coefficient: float = heat_exchanger["nusselt_coefficient"]
+    nusselt_coefficient: float = heat_exchanger["nusselt_coefficient"]
+    energy = M_(*pintil.mtargs(heat_exchanger["energy"])).to_root_units()
+    nusselt_coefficient: float = heat_exchanger["nusselt_coefficient"]
+    reynolds_exponent: float = heat_exchanger["reynolds_exponent"]
+    prandtl_exponent: float = heat_exchanger["prandtl_exponent"]
 
     # Determine plate count based on defined parameters
-    energy = M_(*pintutil.mtargs(heat_exchanger["energy"])).to_root_units()
+    solution_identified = False
     for plates in range(1, heat_exchanger["plate_max_count"]):
-        split_hot_fluid_velocity = hot_fluid_velocity / plates
-        split_cold_fluid_velocity = cold_fluid_velocity / plates
+        hot_fluid_velocity = max_hot_fluid_velocity / plates
+        cold_fluid_velocity = max_cold_fluid_velocity / plates
+
+        hot_reynolds_number = M_(
+            *pintil.mtargs(
+                hot_coolant.reynolds_number(
+                    f"{hot_fluid_velocity:C}",
+                    f"{hydraulic_diameter:C}",
+                )
+            )
+        )
+        cold_reynolds_number = M_(
+            *pintil.mtargs(
+                cold_coolant.reynolds_number(
+                    f"{cold_fluid_velocity:C}",
+                    f"{hydraulic_diameter:C}",
+                )
+            )
+        )
+
+        hot_nusselt_number = M_(
+            *pintil.mtargs(
+                hot_coolant.nusselt_number(
+                    f"{hot_reynolds_number:C}",
+                    nusselt_coefficient,
+                    reynolds_exponent,
+                    prandtl_exponent,
+                )
+            )
+        )
+        cold_nusselt_number = M_(
+            *pintil.mtargs(
+                cold_coolant.nusselt_number(
+                    f"{cold_reynolds_number:C}",
+                    nusselt_coefficient,
+                    reynolds_exponent,
+                    prandtl_exponent,
+                )
+            )
+        )
 
         hot_convective_heat_transfer_coefficient = M_(
-            *pintutil.mtargs(
+            *pintil.mtargs(
                 hot_coolant.convective_coefficient(
-                    (0.1381, 0.75, 0.333),
-                    f"{split_hot_fluid_velocity:C}",
+                    f"{hot_nusselt_number:C}",
                     f"{hydraulic_diameter:C}",
                 )
             )
         )
         cold_convective_heat_transfer_coefficient = M_(
-            *pintutil.mtargs(
+            *pintil.mtargs(
                 cold_coolant.convective_coefficient(
-                    (0.1381, 0.75, 0.333),
-                    f"{split_cold_fluid_velocity:C}",
+                    f"{cold_nusselt_number:C}",
                     f"{hydraulic_diameter:C}",
                 )
             )
         )
 
-        rho = M_(*pintutil.mtargs(hot_coolant.density)).to_root_units()
-        mu = M_(*pintutil.mtargs(hot_coolant.dynamic_viscosity)).to_root_units()
-        hot_reynolds_number = (
-            rho * split_hot_fluid_velocity * hydraulic_diameter / mu
-        ).to_root_units()
-        # hot = nusselt_number = c * reynolds_number**m * self.prandtl_number**n
-
-        rho = M_(*pintutil.mtargs(cold_coolant.density)).to_root_units()
-        mu = M_(*pintutil.mtargs(cold_coolant.dynamic_viscosity)).to_root_units()
-        cold_reynolds_number = (
-            rho * split_cold_fluid_velocity * hydraulic_diameter / mu
-        ).to_root_units()
-
-        ufactor = (
+        u_value = (
             1 / hot_convective_heat_transfer_coefficient
             + 1 / cold_convective_heat_transfer_coefficient
         ).to("m**2*degC/W")
-        ufactor = 1 / ufactor
-        surface_area = (energy / plates) / (ufactor * lmtd_cf)
+        u_value = 1 / u_value
+        surface_area = (energy / plates) / (u_value * lmtd_cf)
         plates_required = round((surface_area / plate_surface_area).value.magnitude)
 
         with open("data/results.csv", "a", newline="\n") as csvfile:
             csvfile.write(
-                "{p_used}, {p_req}, {v_hot}, {v_cold}, {re_hot:.0f}, {re_cold:.0f}, {u}\n".format(
+                "{p_used}, {p_req}, {v_hot}, {v_cold}, {re_hot:.0f}, {re_cold:.0f}, {nu_hot:.0f}, {nu_cold:.0f}, {h_hot:.0f}, {h_cold:.0f}, {u}\n".format(
                     p_used=plates,
                     p_req=plates_required,
-                    v_hot=split_hot_fluid_velocity.value.magnitude,
-                    v_cold=split_cold_fluid_velocity.value.magnitude,
-                    re_hot=hot_reynolds_number.value.magnitude,
-                    re_cold=cold_reynolds_number.value.magnitude,
-                    u=ufactor.value.magnitude,
+                    v_hot=hot_fluid_velocity.magnitude,
+                    v_cold=cold_fluid_velocity.magnitude,
+                    re_hot=hot_reynolds_number.magnitude,
+                    re_cold=cold_reynolds_number.magnitude,
+                    nu_hot=hot_nusselt_number.magnitude,
+                    nu_cold=cold_nusselt_number.magnitude,
+                    h_hot=hot_convective_heat_transfer_coefficient.magnitude,
+                    h_cold=cold_convective_heat_transfer_coefficient.magnitude,
+                    u=u_value.magnitude,
                 )
             )
 
-        if plates >= plates_required:
-            pintutil.mprint(
-                f"{colors.fg.blue}Overall Heat Transfer Coefficient {colors.fg.darkgrey}::{colors.reset} ",
-                ufactor,
+        if plates >= plates_required and not solution_identified:
+            solution_identified = True
+            print(
+                f"\n{colors.underline}Hot Coolant :: {hot_coolant.name}{colors.reset}",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Inlet Temperature {colors.fg.lightgreen}[Ti] {colors.fg.darkgrey}::{colors.reset} ",
+                hot_coolant_inlet_temperature,
+                ".3fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Outlet Temperature {colors.fg.lightgreen}[To] {colors.fg.darkgrey}::{colors.reset} ",
+                hot_coolant_outlet_temperature,
+                ".3fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Delta Temperature {colors.fg.lightgreen}[ΔT] {colors.fg.darkgrey}::{colors.reset} ",
+                hot_coolant_delta_temperature,
+                ".3fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Max Velocity {colors.fg.lightgreen}[u_max] {colors.fg.darkgrey}::{colors.reset} ",
+                max_hot_fluid_velocity,
+                ".3fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Channel Velocity {colors.fg.lightgreen}[u] {colors.fg.darkgrey}::{colors.reset} ",
+                hot_fluid_velocity,
+                ".3fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Reynolds Number {colors.fg.lightgreen}[Re] {colors.fg.darkgrey}::{colors.reset}",
+                hot_reynolds_number,
+                ".0fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Nusselt Number {colors.fg.lightgreen}[Nu] {colors.fg.darkgrey}::{colors.reset}",
+                hot_nusselt_number,
+                ".0fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Convective Coefficient {colors.fg.lightgreen}[h] {colors.fg.darkgrey}::{colors.reset} ",
+                hot_convective_heat_transfer_coefficient,
+                ".1fP~",
+            )
+            print(
+                f"\n{colors.underline}Cold Coolant :: {cold_coolant.name}{colors.reset}",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Inlet Temperature {colors.fg.lightgreen}[Ti] {colors.fg.darkgrey}::{colors.reset} ",
+                cold_coolant_inlet_temperature,
+                ".3fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Outlet Temperature {colors.fg.lightgreen}[To] {colors.fg.darkgrey}::{colors.reset} ",
+                cold_coolant_outlet_temperature,
+                ".3fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Delta Temperature {colors.fg.lightgreen}[ΔT] {colors.fg.darkgrey}::{colors.reset} ",
+                cold_coolant_delta_temperature,
+                ".3fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Max Velocity {colors.fg.lightgreen}[u_max] {colors.fg.darkgrey}::{colors.reset} ",
+                max_cold_fluid_velocity,
+                ".3fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Channel Velocity {colors.fg.lightgreen}[u] {colors.fg.darkgrey}::{colors.reset} ",
+                cold_fluid_velocity,
+                ".3fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Reynolds Number {colors.fg.lightgreen}[Re] {colors.fg.darkgrey}::{colors.reset}",
+                cold_reynolds_number,
+                ".0fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Nusselt Number {colors.fg.lightgreen}[Nu] {colors.fg.darkgrey}::{colors.reset}",
+                cold_nusselt_number,
+                ".0fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Convective Coefficient {colors.fg.lightgreen}[h] {colors.fg.darkgrey}::{colors.reset} ",
+                cold_convective_heat_transfer_coefficient,
+                ".1fP~",
+            )
+            print(
+                f"\n{colors.underline}Heat Exchanger :: {heat_exchanger.get('name')}{colors.reset}",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}LMTD {colors.fg.darkgrey}::{colors.reset} ",
+                lmtd_cf,
+                ".3fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Channel Width {colors.fg.lightgreen}[V] {colors.fg.darkgrey}::{colors.reset} ",
+                channel_width,
                 ".6fP~",
             )
-            print(
-                f"{colors.fg.blue}Hot Coolant Re {colors.fg.darkgrey}::{colors.reset}",
-                hot_reynolds_number.value.magnitude,
+            pintil.mprint(
+                f"{colors.fg.blue}Channel Volume {colors.fg.lightgreen}[V] {colors.fg.darkgrey}::{colors.reset} ",
+                channel_volume,
+                ".6fP~",
             )
-            print(
-                f"{colors.fg.blue}Cold Coolant Re {colors.fg.darkgrey}::{colors.reset}",
-                cold_reynolds_number.value.magnitude,
+            pintil.mprint(
+                f"{colors.fg.blue}Channel Area {colors.fg.lightgreen}[Ac] {colors.fg.darkgrey}::{colors.reset} ",
+                channel_area,
+                ".6fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}Hydraulic Diameter {colors.fg.lightgreen}[Dh] {colors.fg.darkgrey}::{colors.reset} ",
+                hydraulic_diameter,
+                ".6fP~",
+            )
+            pintil.mprint(
+                f"{colors.fg.blue}U-value {colors.fg.lightgreen}[U] {colors.fg.darkgrey}::{colors.reset} ",
+                u_value,
+                ".3fP~",
             )
             print(
                 f"{colors.fg.blue}Plates Required {colors.fg.darkgrey}::{colors.reset}",
                 plates_required,
             )
-            break
-    else:
+
+    if not solution_identified:
+        print(
+            f"\n{colors.underline}Hot Coolant :: {hot_coolant.name}{colors.reset}",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Inlet Temperature {colors.fg.lightgreen}[Ti] {colors.fg.darkgrey}::{colors.reset} ",
+            hot_coolant_inlet_temperature,
+            ".3fP~",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Outlet Temperature {colors.fg.lightgreen}[To] {colors.fg.darkgrey}::{colors.reset} ",
+            hot_coolant_outlet_temperature,
+            ".3fP~",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Delta Temperature {colors.fg.lightgreen}[ΔT] {colors.fg.darkgrey}::{colors.reset} ",
+            hot_coolant_delta_temperature,
+            ".3fP~",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Max Velocity {colors.fg.lightgreen}[u_max] {colors.fg.darkgrey}::{colors.reset} ",
+            max_hot_fluid_velocity,
+            ".3fP~",
+        )
+        print(
+            f"\n{colors.underline}Cold Coolant :: {cold_coolant.name}{colors.reset}",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Inlet Temperature {colors.fg.lightgreen}[Ti] {colors.fg.darkgrey}::{colors.reset} ",
+            cold_coolant_inlet_temperature,
+            ".3fP~",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Outlet Temperature {colors.fg.lightgreen}[To] {colors.fg.darkgrey}::{colors.reset} ",
+            cold_coolant_outlet_temperature,
+            ".3fP~",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Delta Temperature {colors.fg.lightgreen}[ΔT] {colors.fg.darkgrey}::{colors.reset} ",
+            cold_coolant_delta_temperature,
+            ".3fP~",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Max Velocity {colors.fg.lightgreen}[u_max] {colors.fg.darkgrey}::{colors.reset} ",
+            max_cold_fluid_velocity,
+            ".3fP~",
+        )
+        print(
+            f"{colors.underline}Heat Exchanger :: {heat_exchanger.get('name')}{colors.reset}",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}LMTD {colors.fg.darkgrey}::{colors.reset} ",
+            lmtd_cf,
+            ".3fP~",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Channel Width {colors.fg.lightgreen}[V] {colors.fg.darkgrey}::{colors.reset} ",
+            channel_width,
+            ".6fP~",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Channel Volume {colors.fg.lightgreen}[V] {colors.fg.darkgrey}::{colors.reset} ",
+            channel_volume,
+            ".6fP~",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Channel Area {colors.fg.lightgreen}[Ac] {colors.fg.darkgrey}::{colors.reset} ",
+            channel_area,
+            ".6fP~",
+        )
+        pintil.mprint(
+            f"{colors.fg.blue}Channel Hydraulic Diameter {colors.fg.lightgreen}[Dh] {colors.fg.darkgrey}::{colors.reset} ",
+            hydraulic_diameter,
+            ".4P~",
+        )
         print(
             f"{colors.fg.blue}Plates Required {colors.fg.darkgrey}::{colors.reset}",
             f"{colors.fg.red}No Solution{colors.reset}",
@@ -260,6 +400,7 @@ if __name__ == "__main__":
     coolant_params = (
         "density",
         "dynamic_viscosity",
+        "name",
         "prandtl_number",
         "specific_heat",
         "thermal_conductivity",
@@ -275,3 +416,4 @@ if __name__ == "__main__":
     dielectric_fluid = Coolant(**hot_coolant_params)
     water = Coolant(**cold_coolant_params)
     lmtd_analysis(parameters["plate-heat-exchanger"], dielectric_fluid, water)
+    print()

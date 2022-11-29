@@ -1,46 +1,76 @@
-import math
 from dataclasses import dataclass
 
 from pint import Measurement
 
-from hx import pintutil
+from hx import pintil
 
 
 @dataclass
 class Coolant:
     density: str
     dynamic_viscosity: str
-    prandtl_number: float
+    name: str
+    prandtl_number: str
     specific_heat: str
     thermal_conductivity: str
 
-    def temperature_change(self, energy_transfer: str, mass_flow_rate: str) -> str:
+    def temperature_change(
+        self,
+        energy_transfer: str,
+        mass_flow_rate: str,
+    ) -> str:
         M_ = Measurement
 
-        temperature = (
-            M_(*pintutil.mtargs(energy_transfer)).to_root_units()
-            / M_(*pintutil.mtargs(mass_flow_rate)).to_root_units()
-            / M_(*pintutil.mtargs(self.specific_heat)).to_root_units()
+        delta_temperature = (
+            M_(*pintil.mtargs(energy_transfer)).to_root_units()
+            / M_(*pintil.mtargs(mass_flow_rate)).to_root_units()
+            / M_(*pintil.mtargs(self.specific_heat)).to_root_units()
         ).to("kelvin")
-        return f"{temperature:C}"
+        return f"{delta_temperature:C}"
 
-    def convective_coefficient(
+    def reynolds_number(
         self,
-        nu_params: tuple[float],
         fluid_velocity: str,
         hydraulic_diameter: str,
     ) -> str:
         M_ = Measurement
 
-        c, m, n = nu_params
-        rho = M_(*pintutil.mtargs(self.density)).to_root_units()
-        mu = M_(*pintutil.mtargs(self.dynamic_viscosity)).to_root_units()
-        dh = M_(*pintutil.mtargs(hydraulic_diameter)).to_root_units()
-        k = M_(*pintutil.mtargs(self.thermal_conductivity)).to_root_units()
-        u = M_(*pintutil.mtargs(fluid_velocity)).to_root_units()
+        u = M_(*pintil.mtargs(fluid_velocity)).to_root_units()
+        dh = M_(*pintil.mtargs(hydraulic_diameter)).to_root_units()
+        rho = M_(*pintil.mtargs(self.density)).to_root_units()
+        mu = M_(*pintil.mtargs(self.dynamic_viscosity)).to_root_units()
+        re = rho * u * dh / mu
 
-        reynolds_number = rho * u * dh / mu
-        nusselt_number = c * reynolds_number**m * self.prandtl_number**n
-        htcoeff = (nusselt_number * k / dh).to("W/m**2/degC")
+        return f"{re:C}"
 
-        return f"{htcoeff:C}"
+    def nusselt_number(
+        self,
+        reynolds_number: str,
+        nusselt_coefficient: float,
+        reynolds_exponent: float,
+        prandtl_exponent: float,
+    ) -> str:
+        M_ = Measurement
+
+        c, m, n = (nusselt_coefficient, reynolds_exponent, prandtl_exponent)
+        re = M_(*pintil.mtargs(reynolds_number)).to_root_units()
+        pr = M_(*pintil.mtargs(self.prandtl_number)).to_root_units()
+
+        nu = c * re**m * pr**n
+
+        return f"{nu:C}"
+
+    def convective_coefficient(
+        self,
+        nusselt_number: str,
+        hydraulic_diameter: str,
+    ) -> str:
+        M_ = Measurement
+
+        nu = M_(*pintil.mtargs(nusselt_number)).to_root_units()
+        dh = M_(*pintil.mtargs(hydraulic_diameter)).to_root_units()
+        k = M_(*pintil.mtargs(self.thermal_conductivity)).to_root_units()
+
+        h = (nu * k / dh).to("W/m**2/degC")
+
+        return f"{h:C}"

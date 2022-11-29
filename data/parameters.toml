@@ -1,29 +1,30 @@
 [hot-coolant]
-fluid = "Dielectric Fluid"
+name = "Dielectric Fluid"
 density = "870 kg/m**3"
 dynamic_viscosity = "7.65e-4 kg/(m*s)"
-prandtl_number = 14
+prandtl_number = "14 dimensionless"
 specific_heat = "1040 J/(kg*°C)"
 thermal_conductivity = "0.058 W/(m*°C)"
 
 [cold-coolant]
-fluid = "Water"
+name = "Water"
 density = "999.7 kg/m**3"
 dynamic_viscosity = "1.307e-3 kg/(m*s)"
-prandtl_number = 9.45
+prandtl_number = "9.45 dimensionless"
 specific_heat = "4194 J/(kg*°C)"
 thermal_conductivity = "0.580 W/(m*°C)"
 
 [plate-heat-exchanger]
-model = "WCR A216B"
+name = "WCR A216B"
 plate_max_count = 249
-plate_width = "9.625 in"
+plate_width = "5.5 in"
 plate_height = "25.2 in"
-plate_thickness = "0.55 ± 0.05 mm"
-plate_spacing = "5 ± 1 mm"
 channel_volume = "0.08 gal"
 hot_inlet_temperature = "100 °C"
 hot_mass_flow_rate = "4.32 ± 0.5 kg/s"
 cold_inlet_temperature = "10 °C"
 cold_mass_flow_rate = "2.35 ± 0.25 kg/s"
 energy = "45 kW"
+nusselt_coefficient = 0.1381
+reynolds_exponent = 0.75
+prandtl_exponent = 0.333
