@@ -25,6 +25,4 @@ hot_mass_flow_rate = "4.32 ± 0.5 kg/s"
 cold_inlet_temperature = "10 °C"
 cold_mass_flow_rate = "2.35 ± 0.25 kg/s"
 energy = "45 kW"
-nusselt_coefficient = 0.1381
-reynolds_exponent = 0.75
-prandtl_exponent = 0.333
+corregation_angle = 45

@@ -21,11 +21,14 @@ def lmtd_analysis(
     Q_ = ureg.Quantity
 
     # Calculate hot coolant temperatures
+    hot_mass_flow_rate = M_(
+        *pintil.mtargs(heat_exchanger["hot_mass_flow_rate"])
+    ).to_root_units()
     hot_coolant_delta_temperature = M_(
         *pintil.mtargs(
             hot_coolant.temperature_change(
                 "-" + heat_exchanger["energy"],
-                heat_exchanger["hot_mass_flow_rate"],
+                f"{hot_mass_flow_rate:C}",
             )
         )
     )
@@ -38,11 +41,14 @@ def lmtd_analysis(
     hot_coolant_delta_temperature = hot_coolant_delta_temperature.to("delta_degC")
 
     # Calculate cold coolant temperatures
+    cold_mass_flow_rate = M_(
+        *pintil.mtargs(heat_exchanger["cold_mass_flow_rate"])
+    ).to_root_units()
     cold_coolant_delta_temperature = M_(
         *pintil.mtargs(
             cold_coolant.temperature_change(
                 heat_exchanger["energy"],
-                heat_exchanger["cold_mass_flow_rate"],
+                f"{cold_mass_flow_rate:C}",
             )
         )
     )
@@ -78,12 +84,12 @@ def lmtd_analysis(
 
     # Calculate fluid velocity
     max_hot_fluid_velocity = (
-        M_(*pintil.mtargs(heat_exchanger["hot_mass_flow_rate"])).to_root_units()
+        hot_mass_flow_rate
         / M_(*pintil.mtargs(hot_coolant.density)).to_root_units()
         / channel_area
     )
     max_cold_fluid_velocity = (
-        M_(*pintil.mtargs(heat_exchanger["cold_mass_flow_rate"])).to_root_units()
+        cold_mass_flow_rate
         / M_(*pintil.mtargs(cold_coolant.density)).to_root_units()
         / channel_area
     )
@@ -95,12 +101,8 @@ def lmtd_analysis(
         )
 
     # Preload data from parameters file
-    nusselt_coefficient: float = heat_exchanger["nusselt_coefficient"]
-    nusselt_coefficient: float = heat_exchanger["nusselt_coefficient"]
     energy = M_(*pintil.mtargs(heat_exchanger["energy"])).to_root_units()
-    nusselt_coefficient: float = heat_exchanger["nusselt_coefficient"]
-    reynolds_exponent: float = heat_exchanger["reynolds_exponent"]
-    prandtl_exponent: float = heat_exchanger["prandtl_exponent"]
+    corregation_angle: float = heat_exchanger["corregation_angle"]
 
     # Determine plate count based on defined parameters
     solution_identified = False
@@ -129,9 +131,7 @@ def lmtd_analysis(
             *pintil.mtargs(
                 hot_coolant.nusselt_number(
                     f"{hot_reynolds_number:C}",
-                    nusselt_coefficient,
-                    reynolds_exponent,
-                    prandtl_exponent,
+                    corregation_angle,
                 )
             )
         )
@@ -139,9 +139,7 @@ def lmtd_analysis(
             *pintil.mtargs(
                 cold_coolant.nusselt_number(
                     f"{cold_reynolds_number:C}",
-                    nusselt_coefficient,
-                    reynolds_exponent,
-                    prandtl_exponent,
+                    corregation_angle,
                 )
             )
         )
@@ -289,7 +287,7 @@ def lmtd_analysis(
             )
             pintil.mprint(
                 f"{colors.fg.blue}Energy Transfer {colors.fg.lightgreen}[Q] {colors.fg.darkgrey}::{colors.reset} ",
-                energy,
+                energy.to("kW"),
                 ".3fP~",
             )
             pintil.mprint(
