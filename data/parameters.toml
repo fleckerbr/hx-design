@@ -1,6 +1,6 @@
 [hot-coolant]
 name = "Dielectric Fluid"
-density = "1125 ± 250 kg/m**3"
+density = "1250 ± 500 kg/m**3"
 dynamic_viscosity = "7.65e-4 kg/(m*s)"
 prandtl_number = "14 dimensionless"
 specific_heat = "1040 ± 50 J/(kg*°C)"
