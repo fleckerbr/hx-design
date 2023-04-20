@@ -22,18 +22,18 @@ def lmtd_analysis(
 
     # Calculate hot coolant temperatures
     hot_mass_flow_rate = M_(
-        *pintil.mtargs(heat_exchanger["hot_mass_flow_rate"])
+        *pintil.mtargs(str(heat_exchanger["hot_mass_flow_rate"]))
     ).to_root_units()
     hot_coolant_delta_temperature = M_(
         *pintil.mtargs(
             hot_coolant.temperature_change(
-                "-" + heat_exchanger["energy"],
+                "-" + str(heat_exchanger["energy"]),
                 f"{hot_mass_flow_rate:C}",
             )
         )
     )
     hot_coolant_inlet_temperature = M_(
-        *pintil.mtargs(heat_exchanger["hot_inlet_temperature"])
+        *pintil.mtargs(str(heat_exchanger["hot_inlet_temperature"]))
     )
     hot_coolant_outlet_temperature = (
         hot_coolant_inlet_temperature.to("kelvin") + hot_coolant_delta_temperature
@@ -42,18 +42,18 @@ def lmtd_analysis(
 
     # Calculate cold coolant temperatures
     cold_mass_flow_rate = M_(
-        *pintil.mtargs(heat_exchanger["cold_mass_flow_rate"])
+        *pintil.mtargs(str(heat_exchanger["cold_mass_flow_rate"]))
     ).to_root_units()
     cold_coolant_delta_temperature = M_(
         *pintil.mtargs(
             cold_coolant.temperature_change(
-                heat_exchanger["energy"],
+                str(heat_exchanger["energy"]),
                 f"{cold_mass_flow_rate:C}",
             )
         )
     )
     cold_coolant_inlet_temperature = M_(
-        *pintil.mtargs(heat_exchanger["cold_inlet_temperature"])
+        *pintil.mtargs(str(heat_exchanger["cold_inlet_temperature"]))
     )
     cold_coolant_outlet_temperature = (
         cold_coolant_inlet_temperature.to("kelvin") + cold_coolant_delta_temperature
@@ -63,7 +63,7 @@ def lmtd_analysis(
     # Calculate log mean temperature difference
     delta_t1 = hot_coolant_inlet_temperature - cold_coolant_inlet_temperature
     delta_t2 = hot_coolant_outlet_temperature - cold_coolant_outlet_temperature
-    lmtd_cf = (delta_t1 - delta_t2) / umath.log(
+    lmtd_cf = (delta_t1 - delta_t2) / umath.log(  # type: ignore
         ufloat(
             (delta_t1 / delta_t2).value.magnitude,
             (delta_t1 / delta_t2).error.magnitude,
@@ -72,10 +72,12 @@ def lmtd_analysis(
 
     # Calculate heat exchanger dimensions
     channel_volume = M_(
-        *pintil.mtargs(heat_exchanger["channel_volume"])
+        *pintil.mtargs(str(heat_exchanger["channel_volume"]))
     ).to_root_units()
-    plate_width = M_(*pintil.mtargs(heat_exchanger["plate_width"])).to_root_units()
-    plate_height = M_(*pintil.mtargs(heat_exchanger["plate_height"])).to_root_units()
+    plate_width = M_(*pintil.mtargs(str(heat_exchanger["plate_width"]))).to_root_units()
+    plate_height = M_(
+        *pintil.mtargs(str(heat_exchanger["plate_height"]))
+    ).to_root_units()
 
     plate_surface_area = plate_width * plate_height
     channel_width = channel_volume / plate_surface_area
@@ -101,12 +103,12 @@ def lmtd_analysis(
         )
 
     # Preload data from parameters file
-    energy = M_(*pintil.mtargs(heat_exchanger["energy"])).to_root_units()
-    corregation_angle: float = heat_exchanger["corregation_angle"]
+    energy = M_(*pintil.mtargs(str(heat_exchanger["energy"]))).to_root_units()
+    corregation_angle: float = float(heat_exchanger["corregation_angle"])
 
     # Determine plate count based on defined parameters
     solution_identified = False
-    for plates_used in range(1, heat_exchanger["plate_max_count"]):
+    for plates_used in range(1, int(heat_exchanger["plate_max_count"])):
         hot_fluid_velocity = max_hot_fluid_velocity / plates_used
         cold_fluid_velocity = max_cold_fluid_velocity / plates_used
 
